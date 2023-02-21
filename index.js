@@ -150,7 +150,7 @@ var machines = [];
 var molecules = [];
 
 class Machine {
-    constructor(name, position, reactantSlots, productSlots, entrancePos, exitPos, productPath) {
+    constructor(name, position, reactantSlots, productSlots, entrancePos, centerPos, exitPos, productPath) {
         /* reactantSlots: [{
             name: String reactant name,
             pos: Vec2,
@@ -170,6 +170,7 @@ class Machine {
         this.reactantSlots = reactantSlots;
         this.productSlots = productSlots;
         this.entrancePos = entrancePos;
+        this.centerPos = centerPos;
         this.exitPos = exitPos;
         this.productPath = productPath; // The path products take when they leave the machine
         this.state = 'waiting'; // 'waiting'
@@ -194,12 +195,57 @@ class Machine {
             moleculeSprite.path = this.productPath;
         }
     }
+
+    run() {
+        // Does the animations and like idk
+
+        if (this.state == 'waiting') {
+            // waiting for reactants
+
+            // Look for blank slots and then fill in those blank slots
+            for (let slot of this.reactantSlots) {
+                if (slot.sprite == null) {
+
+
+                    // We have a blank slot, look for something in the queue that can fill in that blank slot
+                    for (let moleculeName of queue) {
+                        if (moleculeName == slot.name) {
+                            // Make a Molecule based on the name and pos
+                            let molecule = new Molecule(slot.name, slot.pos, this.centerPos);
+                            slot.sprite = molecule;
+                            break;
+                        }
+                    }
+
+
+                }
+            }
+
+
+            // Check if all the slots are full
+            let allSlotsFull = true;
+            for (let slot of this.reactantSlots) {
+                if (slot.sprite == null) {
+                    allSlotsFull = false;
+                    break;
+                }
+            }
+
+            if (allSlotsFull) {
+                this.state = 'reacting';
+            }
+        }
+
+        else if (this.state == 'reacting') {
+
+        }
+    }
 }
 
 class Molecule {
     constructor (name, startPos, path) {
         this.name = name;
-        this.path = path;
+        this._path = path; /* PATH CAN BE A LIST OF VEC 2, SINGLE VEC 2, OR NULL */
 
         this.sprite = add([
             sprite(name),
@@ -208,10 +254,42 @@ class Molecule {
             scale(2),
             origin("center")
         ])
+
+        if (Array.isArray(this._path)) {
+            if (this._path.length == 1 && this._path[0] == this.sprite.pos) {
+                this.atDestination = true;
+            } else {
+                this.atDestination = false;
+            }
+        } else if (this._path == this.sprite.pos) {
+            this.atDestination = true;
+        } else {
+            this.atDestination = false;
+        }
     }
 
     remove() {
         destroy(this.sprite);
+    }
+
+    set path(newPath) {
+        this._path = newPath
+
+        if (Array.isArray(this._path)) {
+            if (this._path.length == 1 && this._path[0] == this.sprite.pos) {
+                this.atDestination = true;
+            } else {
+                this.atDestination = false;
+            }
+        } else if (this._path == this.sprite.pos) {
+            this.atDestination = true;
+        } else {
+            this.atDestination = false;
+        }
+    }
+
+    get path() {
+        return this._path;
     }
 }
 
