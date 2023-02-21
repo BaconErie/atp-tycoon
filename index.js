@@ -43,7 +43,7 @@ var phosphorylation = add([
     scale(2),
     origin("center")
 ]);
-
+ 
 phosphorylation.queue = [];
 phosphorylation.working = [];
 
