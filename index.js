@@ -1,7 +1,47 @@
+// Warn if overriding existing method
+if(Array.prototype.equals)
+    console.warn("Overriding existing Array.prototype.equals. Possible causes: New API defines the method, there's a framework conflict or you've got double inclusions in your code.");
+// attach the .equals method to Array's prototype to call it on any array
+Array.prototype.equals = function (array) {
+    // if the other array is a falsy value, return
+    if (!array)
+        return false;
+    // if the argument is the same array, we can be sure the contents are same as well
+    if(array === this)
+        return true;
+    // compare lengths - can save a lot of time 
+    if (this.length != array.length)
+        return false;
+
+    for (var i = 0, l=this.length; i < l; i++) {
+        // Check if we have nested arrays
+        if (this[i] instanceof Array && array[i] instanceof Array) {
+            // recurse into the nested arrays
+            if (!this[i].equals(array[i]))
+                return false;       
+        }           
+        else if (this[i] != array[i]) { 
+            // Warning - two different object instances will never be equal: {x:20} != {x:20}
+            return false;   
+        }           
+    }       
+    return true;
+}
+// Hide method from for-in loops
+Object.defineProperty(Array.prototype, "equals", {enumerable: false});
+
 kaboom({
     width: 1000,
     height: 600
 });
+
+const MOLECULE_SPEED = 60;
+const ANIM_SPEED = 30;
+
+var lastGlucoseSpawn = 0;
+var lastATPSpawn = 15;
+var molecules = [];
+var displayMolecules = [];
 
 // LOAD SOME SPRITES
 loadSprite('citric-acid-cycle', 'images/citric-acid-cycle.png');
@@ -108,11 +148,16 @@ var phosphorylation = add([
     pos(105, 78), 
     area(),
     scale(2),
-    origin("center")
+    origin("center"),
 ]);
  
 phosphorylation.queue = [];
 phosphorylation.working = [];
+phosphorylation.needed = {
+    'glucose': 1,
+    'atp': 2
+}
+phosphorylation.finishedItems = [];
 
 
 
@@ -229,13 +274,76 @@ const atp2 = add([
     origin('center')
 ])
 
-const glucose = add([
-    sprite('glucose'),
-    pos(120, 80), 
-    area(),
-    scale(2),
-    origin('center')
-])
+function createAtp(pos_set, path, destination) {
+    const atp = add([
+        sprite('atp'),
+        pos(pos_set), 
+        area(),
+        scale(2),
+        origin('center')
+    ])
+    atp.type = 'atp';
+    atp.path = path;
+    atp.destination = destination;
+    atp.moveTo(path[0].x, path[0].y, MOLECULE_SPEED);
+
+    molecules.push(atp);
+
+    return atp;
+}
+
+function displayAtp(pos_set) {
+    const atp = add([
+        sprite('atp'),
+        pos(pos_set), 
+        area(),
+        scale(2),
+        origin('center'),
+        layer('pro')
+    ])
+
+    atp.final = pos_set;
+
+    displayMolecules.push(atp);
+
+    return atp;
+}
+
+function createGlucose(pos_set, path, destination) {
+    const glucose = add([
+        sprite('glucose'),
+        pos(pos_set), 
+        area(),
+        scale(2),
+        origin('center')
+    ])
+    glucose.type = 'glucose';
+    glucose.path = path;
+    glucose.destination = destination;
+    glucose.moveTo(path[0].x, path[0].y, MOLECULE_SPEED);
+
+    molecules.push(glucose);
+
+    return glucose;
+}
+
+function displayGlucose(pos_set) {
+    console.log('where')
+    const glucose = add([
+        sprite('glucose'),
+        pos(pos_set), 
+        area(),
+        scale(2),
+        origin('center'),
+        layer('pro')
+    ])
+
+    glucose.final = pos_set;
+
+    displayMolecules.push(glucose);
+
+    return glucose;
+}
 
 const sixC = add([
     sprite('6c'),
@@ -264,11 +372,126 @@ const threeC2 = add([
 let clicked = null;
 
 onUpdate(() => {
+    for (let molecule of displayMolecules) {
+        molecule.moveTo(molecule.final, ANIM_SPEED);
+    }
+
     for (let sprite of get()) {
         if (sprite.isClicked()) {
             clicked = sprite
             console.log(sprite.pos)
         }
+    }
+
+    if (lastGlucoseSpawn <= 0) {
+        createGlucose(vec2(14, 82), [vec2(44, 82)], phosphorylation);
+        lastGlucoseSpawn = 60;
+    } else {
+        lastGlucoseSpawn--;
+    }
+
+    if (lastATPSpawn <= 0) {
+        createAtp(vec2(14, 82), [vec2(44, 82)], phosphorylation);
+        lastATPSpawn = 30;
+    } else {
+        lastATPSpawn--;
+    }
+
+    for (const molecule of molecules) {
+        molecule.moveTo(molecule.path[0], MOLECULE_SPEED)
+
+        if (molecule.pos.x == molecule.path[0].x && molecule.pos.y == molecule.path[0].y) {
+            molecule.path.shift();
+
+            // Check if the molecule path has ended
+            if (molecule.path.length == 0) {
+                molecule.destination.queue.push(molecule.type);
+                
+                const index = molecules.indexOf(molecule);
+                if (index > -1) { // only splice array when item is found
+                    molecules.splice(index, 1); // 2nd parameter means remove one item only
+                }
+
+                destroy(molecule);
+            } else {
+                molecule.moveTo(molecule.path[0].x, molecule.path[0].y, MOLECULE_SPEED);
+            }
+        } 
+    }
+
+    for (let molecule of phosphorylation.queue) {
+        if (molecule == 'glucose' && phosphorylation.needed['glucose'] != 0) {
+            phosphorylation.needed['glucose']--;
+            phosphorylation.queue.splice(molecules.indexOf(molecule), 1);
+
+            // POSITION IT DEPEND ON HOW MANY IS IN WORKING
+            var moleculeSprite;
+            switch(phosphorylation.working.length) {
+                case 0:
+                    moleculeSprite = displayGlucose(vec2(85, 65));
+                    break;
+                
+                case 1:
+                    moleculeSprite = displayGlucose(vec2(85, 110));
+                    break;
+
+                case 2:
+                    moleculeSprite = displayGlucose(vec2(124, 88));
+                    break;
+            }
+
+            // ADD IT TO WORKING SO WE CAN MOVE IT
+            phosphorylation.working.push(moleculeSprite);
+        }
+
+        else if (molecule == 'atp' && phosphorylation.needed['atp'] != 0) {
+            phosphorylation.needed['atp']--;
+            phosphorylation.queue.splice(molecules.indexOf(molecule), 1);
+
+            // POSITION IT DEPEND ON HOW MANY IS IN WORKING
+            var moleculeSprite;
+            switch(phosphorylation.working.length) {
+                case 0:
+                    moleculeSprite = displayAtp(vec2(85, 65));
+                    break;
+                
+                case 1:
+                    moleculeSprite = displayAtp(vec2(85, 110));
+                    break;
+
+                case 2:
+                    moleculeSprite = displayAtp(vec2(124, 88));
+                    break;
+            }
+
+            // ADD IT TO WORKING SO WE CAN MOVE IT
+            phosphorylation.working.push(moleculeSprite);
+        }
+    }
+
+    if (phosphorylation.working.length == 3) {
+        for (let molecule of phosphorylation.working) {
+            molecule.final = vec2(109, 82)
+            molecule.moved = true;
+        }
+    }
+
+    for (let molecule of phosphorylation.working) {
+        if (molecule.moved && molecule.pos.x == molecule.final.x && molecule.pos.y == molecule.final.y && !phosphorylation.finishedItems.includes(molecule._id)) {
+            phosphorylation.finishedItems.push(molecule._id);
+        }
+    }
+
+    let workingIds = []
+    for (let molecule of phosphorylation.working) {
+        workingIds.push(molecule._id);
+    }
+
+    console.log(workingIds.sort() == phosphorylation.finishedItems.sort())
+    console.log(workingIds.sort())
+    console.log(phosphorylation.finishedItems.sort())
+    if (workingIds.equals(phosphorylation.working)) {
+        console.log('yo termino')
     }
 })
 
