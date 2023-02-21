@@ -403,6 +403,13 @@ class Molecule {
     }
 }
 
+var phosphorylationMachine = new Machine(
+    'phosphorylation',
+    vec2(105, 78),
+    {
+        
+    })
+
 var phosphorylation = add([
     sprite('phosphorylation'),
     pos(105, 78), 
@@ -653,6 +660,17 @@ onUpdate(() => {
         lastATPSpawn = 30;
     } else {
         lastATPSpawn--;
+    }
+
+    for (let molecule of moleculesOnConveyor) {
+        molecule.move();
+
+        // See if any of the molecules are at the start pos of any of the machines
+        for (let machine of machines) {
+            if (molecule.sprite.pos == machine.startPos) {
+                machine.inputMolecule(molecule);
+            }
+        }
     }
 })
 
