@@ -172,7 +172,7 @@ class Machine {
         this.entrancePos = entrancePos;
         this.centerPos = centerPos;
         this.exitPos = exitPos;
-        this.productPath = productPath; // The path products take when they leave the machine
+        this.productPath = productPath; // The path products take when they leave the machine. A dict, with name: path list
         this.state = 'waiting'; // 'waiting'
         this.lastExpel = 30;
     }
@@ -193,7 +193,7 @@ class Machine {
             molecule.remove(); 
         } else {
             molecule.sprite.moveTo(this.exitPos);
-            molecule.path = this.productPath;
+            molecule.path = this.productPath[molecule.name];
         }
     }
 
@@ -318,7 +318,7 @@ class Machine {
                 }
 
                 // Expell molecule
-                moleculeToExpel.path = this.productPath;
+                moleculeToExpel.path = this.productPath.moleculeToExpel[moleculeToExpel.name];
                 moleculeToExpel.sprite.moveTo(this.exitPos);
                 moleculesOnConveyor.push(moleculeToExpel);
 
