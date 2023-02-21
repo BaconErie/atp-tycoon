@@ -143,6 +143,78 @@ buy.onClick(() => {
     promptBuy();
 });
 
+/******************************
+MAIN STUFF
+*******************************/
+var machines = [];
+var molecules = [];
+
+class Machine {
+    constructor(name, position, reactantSlots, productSlots, entrancePos, exitPos, productPath) {
+        /* reactantSlots: [{
+            name: String reactant name,
+            pos: Vec2,
+            sprite: Sprite
+        }] */
+
+        this.name = name;
+        this.sprite = add([
+            sprite(name),
+            pos(position),
+            area(),
+            scale(2),
+            origin('center')
+        ])
+
+        this.queue = []; // String of sprite names
+        this.reactantSlots = reactantSlots;
+        this.productSlots = productSlots;
+        this.entrancePos = entrancePos;
+        this.exitPos = exitPos;
+        this.productPath = productPath; // The path products take when they leave the machine
+        this.state = 'waiting'; // 'waiting'
+    }
+
+    inputMolecule(moleculeSprite) {
+        let isReactant = false;
+        
+        for (let slot of this.reactantSlots) {
+            if (moleculeSprite.name == slot['name']) {
+                isReactant = true;
+                break;
+            }
+        }
+
+        if (isReactant) {
+            this.queue.push(moleculeSprite.name)
+            molecules.splice(molecules.indexOf(moleculeSprite), 1);
+            moleculeSprite.remove(); 
+        } else {
+            moleculeSprite.moveTo(this.exitPos);
+            moleculeSprite.path = this.productPath;
+        }
+    }
+}
+
+class Molecule {
+    constructor (name, startPos, path) {
+        this.name = name;
+        this.path = path;
+
+        this.sprite = add([
+            sprite(name),
+            pos(startPos), 
+            area(),
+            scale(2),
+            origin("center")
+        ])
+    }
+
+    remove() {
+        destroy(this.sprite);
+    }
+}
+
 var phosphorylation = add([
     sprite('phosphorylation'),
     pos(105, 78), 
