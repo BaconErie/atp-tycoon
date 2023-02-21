@@ -18,12 +18,78 @@ loadSprite('2c', 'images/2c.png');
 loadSprite('acetylcoa-creation', 'images/acetylcoa-creation.png');
 loadSprite('asdf', 'images/asdf.png');
 loadSprite('buy', 'images/buy.png');
+loadSprite('buy-background', 'images/buy-background.png');
 
-layers(['pro'], 'game')
+layers(['prompt', 'pro'], 'game')
+
+var buyPromptStuff = [];
+
+function promptBuy() {
+    buyPromptStuff.push(add([
+        sprite('buy-background'),
+        pos(500, 300), 
+        area(),
+        scale(2),
+        origin("center"),
+        layer('prompt')
+    ]));
+    
+    buyPromptStuff.push(add([
+        text(`Are you sure you want to buy ${buy.string} for $${buy.cost}?`, {
+            size: 30,
+            width: 320,
+            font: 'sinko',
+            
+        }),
+        pos(350, 136),
+        area(),
+        layer('prompt')
+    ]))
+
+    let yes = add([
+        text(`Yes`, {
+            size: 30,
+            font: 'sinko',
+            
+        }),
+        pos(350, 435),
+        area(),
+        color(0, 255, 0),
+        layer('prompt')
+    ]);
+
+    yes.onClick(() => {
+        buy.callback();
+        for (let thing of buyPromptStuff) {
+            thing.destroy();
+        }
+    });
+
+    let no = add([
+        text(`No`, {
+            size: 30,
+            font: 'sinko',
+            
+        }),
+        pos(601, 435),
+        area(),
+        color(255, 0, 0),
+        layer('prompt')
+    ]);
+
+    no.onClick(() => {
+        for (let thing of buyPromptStuff) {
+            thing.destroy();
+        }
+    });
+
+    buyPromptStuff.push(yes);
+    buyPromptStuff.push(no);
+}
 
 var buy = add([
     sprite('buy'),
-    pos(286, 72), 
+    pos(286, 88), 
     area(),
     scale(2),
     origin("center")
@@ -31,9 +97,10 @@ var buy = add([
 
 buy.cost = 200;
 buy.callback = addEnergyHarvester;
+buy.string = 'Energy Harvestor'
 
 buy.onClick(() => {
-    buy.callback()
+    promptBuy();
 });
 
 var phosphorylation = add([
@@ -64,9 +131,10 @@ function addEnergyHarvester() {
     energyHarvester.working = [];
 
     console.log(buy.pos)
-    buy.pos = pos(110, 459);
+    buy.pos = vec2(608, 88);
     buy.callback = addTransportProtein;
     buy.cost = 200;
+    buy.string = 'Mitochondria Transport Protein';
 }
 
 var transportProtein = null;
@@ -82,6 +150,12 @@ function addTransportProtein() {
 
     transportProtein.queue = [];
     transportProtein.working = [];
+
+    console.log(buy.pos)
+    buy.pos = vec2(827, 288);
+    buy.callback = addAcetylCoaMachine;
+    buy.cost = 200;
+    buy.string = 'Acetyl-CoA machine';
 }
 
 var acetylCoaMachine = null;
@@ -94,6 +168,12 @@ function addAcetylCoaMachine() {
         scale(2),
         origin("center")
     ]);
+
+    console.log(buy.pos)
+    buy.pos = vec2(827, 401);
+    buy.callback = addCitricAcidCycle;
+    buy.cost = 500;
+    buy.string = 'Citric Acid Cycle';
 }
 
 var citricAcidCycle = null;
