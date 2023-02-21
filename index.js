@@ -147,7 +147,7 @@ buy.onClick(() => {
 MAIN STUFF
 *******************************/
 var machines = [];
-var molecules = [];
+var moleculesOnConveyor = [];
 
 class Machine {
     constructor(name, position, reactantSlots, productSlots, entrancePos, centerPos, exitPos, productPath) {
@@ -174,25 +174,26 @@ class Machine {
         this.exitPos = exitPos;
         this.productPath = productPath; // The path products take when they leave the machine
         this.state = 'waiting'; // 'waiting'
+        this.lastExpel = 30;
     }
 
-    inputMolecule(moleculeSprite) {
+    inputMolecule(molecule) {
         let isReactant = false;
         
         for (let slot of this.reactantSlots) {
-            if (moleculeSprite.name == slot['name']) {
+            if (molecule.name == slot['name']) {
                 isReactant = true;
                 break;
             }
         }
 
         if (isReactant) {
-            this.queue.push(moleculeSprite.name)
-            molecules.splice(molecules.indexOf(moleculeSprite), 1);
-            moleculeSprite.remove(); 
+            this.queue.push(molecule.name)
+            moleculesOnConveyor.splice(moleculesOnConveyor.indexOf(molecule), 1);
+            molecule.remove(); 
         } else {
-            moleculeSprite.moveTo(this.exitPos);
-            moleculeSprite.path = this.productPath;
+            molecule.sprite.moveTo(this.exitPos);
+            molecule.path = this.productPath;
         }
     }
 
@@ -237,7 +238,108 @@ class Machine {
         }
 
         else if (this.state == 'reacting') {
+            let reactants = [];
 
+            for (let slot of this.reactantSlots) {
+                reactants.push(slot.sprite);
+            }
+
+            // Set the paths to the center of the machine
+            for (let reactant of reactants) {
+                reactant.path = this.centerPos;
+            }
+
+            // Move the reactants
+            for (let reactant of reactants) {
+                reactant.move();
+            }
+
+            // Check if all of the reactants are atDestination
+            let allReactantsAtDest = true;
+            for (let reactant of reactants) {
+                if (!reactant.atDestination) {
+                    allReactantsAtDest = false;
+                    break;
+                }
+            }
+
+            if (allReactantsAtDest) {
+                // Remove all reactants
+                for (let slot of this.reactantSlots) {
+                    slot.sprite.remove();
+                    slot.sprite = null;
+                }
+
+                // Create products
+                for (let slot of this.productSlots) {
+                    slot.sprite = new Molecule(slot.name, this.centerPos, slot.pos);
+                }
+
+                this.state = 'producting';
+            }            
+        }
+
+        else if (this.state == 'producting') {
+            let products = [];
+
+            for (let slot of this.productSlots) {
+                products.push(slot.sprite);
+            }
+
+            // Move the products
+            for (let product of products) {
+                product.move();
+            }
+
+            // Check if all the products are atDestination
+            let allProductsAtDest = true;
+            for (let product of products) {
+                if (!product.atDestination) {
+                    allProductsAtDest = false;
+                    break;
+                }
+            }
+
+            if (allProductsAtDest) {
+                this.state = 'expelling';
+            }
+        }
+
+        else if (this.state == 'expelling') {
+            if (this.lastExpel <= 0) {
+                let moleculeToExpel;
+
+                for (let slot of this.productSlots) {
+                    if (slot.sprite != null) {
+                        moleculeToExpel = slot.sprite;
+                        slot.sprite = null;
+                        break;
+                    }
+                }
+
+                // Expell molecule
+                moleculeToExpel.path = this.productPath;
+                moleculeToExpel.sprite.moveTo(this.exitPos);
+                moleculesOnConveyor.push(moleculeToExpel);
+
+                this.lastExpel = 30;
+
+                // If all molecules expelled, go back to waiting state
+
+                let allMoleculesExpelled = true;
+                for (let slot of this.productSlots) {
+                    if (slot.sprite != null) {
+                        allMoleculesExpelled = false;
+                        break;
+                    }
+                }
+
+                if (allMoleculesExpelled) {
+                    this.state = 'waiting'
+                }
+            } else {
+                this.lastExpel--;
+            }
         }
     }
 }
@@ -290,6 +392,14 @@ class Molecule {
 
     get path() {
         return this._path;
+    }
+
+    move() {
+        if (Array.isArray(this._path)) {
+            this.moveTo(this._path[0], MOLECULE_SPEED);
+        } else {
+            this.moveTo(this._path, MOLECULE_SPEED);
+        }
     }
 }
 
@@ -522,10 +632,6 @@ const threeC2 = add([
 let clicked = null;
 
 onUpdate(() => {
-    for (let molecule of displayMolecules) {
-        molecule.moveTo(molecule.final, ANIM_SPEED);
-    }
-
     for (let sprite of get()) {
         if (sprite.isClicked()) {
             clicked = sprite
@@ -534,114 +640,19 @@ onUpdate(() => {
     }
 
     if (lastGlucoseSpawn <= 0) {
-        createGlucose(vec2(14, 82), [vec2(44, 82)], phosphorylation);
+        let newGlucose = new Molecule('glucose', vec(14, 82), vec2(44, 82));
+        moleculesOnConveyor.push(newGlucose);
         lastGlucoseSpawn = 60;
     } else {
         lastGlucoseSpawn--;
     }
 
     if (lastATPSpawn <= 0) {
-        createAtp(vec2(14, 82), [vec2(44, 82)], phosphorylation);
+        let newATP = new Molecule('atp', vec(14, 82), vec2(44, 82));
+        moleculesOnConveyor.push(newATP);
         lastATPSpawn = 30;
     } else {
         lastATPSpawn--;
-    }
-
-    for (const molecule of molecules) {
-        molecule.moveTo(molecule.path[0], MOLECULE_SPEED)
-
-        if (molecule.pos.x == molecule.path[0].x && molecule.pos.y == molecule.path[0].y) {
-            molecule.path.shift();
-
-            // Check if the molecule path has ended
-            if (molecule.path.length == 0) {
-                molecule.destination.queue.push(molecule.type);
-                
-                const index = molecules.indexOf(molecule);
-                if (index > -1) { // only splice array when item is found
-                    molecules.splice(index, 1); // 2nd parameter means remove one item only
-                }
-
-                destroy(molecule);
-            } else {
-                molecule.moveTo(molecule.path[0].x, molecule.path[0].y, MOLECULE_SPEED);
-            }
-        } 
-    }
-
-    for (let molecule of phosphorylation.queue) {
-        if (molecule == 'glucose' && phosphorylation.needed['glucose'] != 0) {
-            phosphorylation.needed['glucose']--;
-            phosphorylation.queue.splice(molecules.indexOf(molecule), 1);
-
-            // POSITION IT DEPEND ON HOW MANY IS IN WORKING
-            var moleculeSprite;
-            switch(phosphorylation.working.length) {
-                case 0:
-                    moleculeSprite = displayGlucose(vec2(85, 65));
-                    break;
-                
-                case 1:
-                    moleculeSprite = displayGlucose(vec2(85, 110));
-                    break;
-
-                case 2:
-                    moleculeSprite = displayGlucose(vec2(124, 88));
-                    break;
-            }
-
-            // ADD IT TO WORKING SO WE CAN MOVE IT
-            phosphorylation.working.push(moleculeSprite);
-        }
-
-        else if (molecule == 'atp' && phosphorylation.needed['atp'] != 0) {
-            phosphorylation.needed['atp']--;
-            phosphorylation.queue.splice(molecules.indexOf(molecule), 1);
-
-            // POSITION IT DEPEND ON HOW MANY IS IN WORKING
-            var moleculeSprite;
-            switch(phosphorylation.working.length) {
-                case 0:
-                    moleculeSprite = displayAtp(vec2(85, 65));
-                    break;
-                
-                case 1:
-                    moleculeSprite = displayAtp(vec2(85, 110));
-                    break;
-
-                case 2:
-                    moleculeSprite = displayAtp(vec2(124, 88));
-                    break;
-            }
-
-            // ADD IT TO WORKING SO WE CAN MOVE IT
-            phosphorylation.working.push(moleculeSprite);
-        }
-    }
-
-    if (phosphorylation.working.length == 3) {
-        for (let molecule of phosphorylation.working) {
-            molecule.final = vec2(109, 82)
-            molecule.moved = true;
-        }
-    }
-
-    for (let molecule of phosphorylation.working) {
-        if (molecule.moved && molecule.pos.x == molecule.final.x && molecule.pos.y == molecule.final.y && !phosphorylation.finishedItems.includes(molecule._id)) {
-            phosphorylation.finishedItems.push(molecule._id);
-        }
-    }
-
-    let workingIds = []
-    for (let molecule of phosphorylation.working) {
-        workingIds.push(molecule._id);
-    }
-
-    console.log(workingIds.sort() == phosphorylation.finishedItems.sort())
-    console.log(workingIds.sort())
-    console.log(phosphorylation.finishedItems.sort())
-    if (workingIds.equals(phosphorylation.working)) {
-        console.log('yo termino')
     }
 })
 
