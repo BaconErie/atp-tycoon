@@ -4,6 +4,7 @@ kaboom({
 });
 
 // LOAD SOME SPRITES
+loadSprite('citric-acid-cycle', 'images/citric-acid-cycle.png');
 loadSprite('adp', 'images/adp.png');
 loadSprite('atp', 'images/atp.png')
 loadSprite('nad+', 'images/nad+.png');
@@ -17,6 +18,18 @@ loadSprite('2c', 'images/2c.png');
 loadSprite('acetylcoa-creation', 'images/acetylcoa-creation.png');
 loadSprite('asdf', 'images/asdf.png');
 
+layers(['pro'], 'game')
+
+
+const citricAcidCycle = add([
+    sprite('citric-acid-cycle'),
+    pos(815, 404), 
+    area(),
+    scale(2),
+    origin("center"),
+    layer('pro')
+]);
+
 const phosphorylation = add([
     sprite('phosphorylation'),
     pos(105, 78), 
@@ -24,6 +37,8 @@ const phosphorylation = add([
     scale(2),
     origin("center")
 ]);
+
+
 
 const transportProtein = add([
     sprite('transport_protein'),
@@ -49,13 +64,13 @@ const energy_harvester = add([
     origin("center")
 ]);
 
-const asdf = add([
-    sprite('asdf'),
-    pos(356, 70), 
-    area(),
-    scale(2),
-    origin("center")
-]);
+// const asdf = add([
+//     sprite('asdf'),
+//     pos(356, 70), 
+//     area(),
+//     scale(2),
+//     origin("center")
+// ]);
 
 const adp1 = add([
     sprite('adp'),
