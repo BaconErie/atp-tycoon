@@ -11,7 +11,11 @@ loadSprite('glucose', 'images/glucose.png');
 loadSprite('phosphorylation', 'images/phosphorylation.png');
 loadSprite('6c', 'images/6c.png');
 loadSprite('3c', 'images/3c.png');
-loadSprite('energy_harvester', 'images/nrg_harvester.png')
+loadSprite('energy_harvester', 'images/nrg_harvester.png');
+loadSprite('transport_protein', 'images/transport_protein.png');
+loadSprite('2c', 'images/2c.png');
+loadSprite('acetylcoa-creation', 'images/acetylcoa-creation.png');
+loadSprite('asdf', 'images/asdf.png');
 
 const phosphorylation = add([
     sprite('phosphorylation'),
@@ -21,8 +25,32 @@ const phosphorylation = add([
     origin("center")
 ]);
 
+const transportProtein = add([
+    sprite('transport_protein'),
+    pos(647, 70), 
+    area(),
+    scale(2),
+    origin("center")
+]);
+
+const acetylCoaMachine = add([
+    sprite('acetylcoa-creation'),
+    pos(849, 138), 
+    area(),
+    scale(2),
+    origin("center")
+]);
+
 const energy_harvester = add([
     sprite('energy_harvester'),
+    pos(356, 70), 
+    area(),
+    scale(2),
+    origin("center")
+]);
+
+const asdf = add([
+    sprite('asdf'),
     pos(356, 70), 
     area(),
     scale(2),
