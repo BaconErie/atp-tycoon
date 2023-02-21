@@ -17,20 +17,26 @@ loadSprite('transport_protein', 'images/transport_protein.png');
 loadSprite('2c', 'images/2c.png');
 loadSprite('acetylcoa-creation', 'images/acetylcoa-creation.png');
 loadSprite('asdf', 'images/asdf.png');
+loadSprite('buy', 'images/buy.png');
 
 layers(['pro'], 'game')
 
-
-const citricAcidCycle = add([
-    sprite('citric-acid-cycle'),
-    pos(815, 404), 
+var buy = add([
+    sprite('buy'),
+    pos(286, 72), 
     area(),
     scale(2),
-    origin("center"),
-    layer('pro')
+    origin("center")
 ]);
 
-const phosphorylation = add([
+buy.cost = 200;
+buy.callback = addEnergyHarvester;
+
+buy.onClick(() => {
+    buy.callback()
+});
+
+var phosphorylation = add([
     sprite('phosphorylation'),
     pos(105, 78), 
     area(),
@@ -38,31 +44,70 @@ const phosphorylation = add([
     origin("center")
 ]);
 
+phosphorylation.queue = [];
+phosphorylation.working = [];
 
 
-const transportProtein = add([
-    sprite('transport_protein'),
-    pos(647, 70), 
-    area(),
-    scale(2),
-    origin("center")
-]);
 
-const acetylCoaMachine = add([
-    sprite('acetylcoa-creation'),
-    pos(849, 138), 
-    area(),
-    scale(2),
-    origin("center")
-]);
+var energyHarvester = null;
 
-const energy_harvester = add([
-    sprite('energy_harvester'),
-    pos(356, 70), 
-    area(),
-    scale(2),
-    origin("center")
-]);
+function addEnergyHarvester() {
+    energyHarvester = add([
+        sprite('energy_harvester'),
+        pos(356, 70), 
+        area(),
+        scale(2),
+        origin("center")
+    ]);
+
+    energyHarvester.queue = [];
+    energyHarvester.working = [];
+
+    console.log(buy.pos)
+    buy.pos = pos(110, 459);
+    buy.callback = addTransportProtein;
+    buy.cost = 200;
+}
+
+var transportProtein = null;
+
+function addTransportProtein() {
+    transportProtein = add([
+        sprite('transport_protein'),
+        pos(647, 70), 
+        area(),
+        scale(2),
+        origin("center")
+    ]);
+
+    transportProtein.queue = [];
+    transportProtein.working = [];
+}
+
+var acetylCoaMachine = null;
+
+function addAcetylCoaMachine() {
+    acetylCoaMachine = add([
+        sprite('acetylcoa-creation'),
+        pos(849, 138), 
+        area(),
+        scale(2),
+        origin("center")
+    ]);
+}
+
+var citricAcidCycle = null;
+
+function addCitricAcidCycle() {
+    citricAcidCycle = add([
+        sprite('citric-acid-cycle'),
+        pos(815, 404), 
+        area(),
+        scale(2),
+        origin("center"),
+        layer('pro')
+    ]);
+}
 
 // const asdf = add([
 //     sprite('asdf'),
