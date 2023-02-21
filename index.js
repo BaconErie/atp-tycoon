@@ -60,7 +60,7 @@ loadSprite('asdf', 'images/asdf.png');
 loadSprite('buy', 'images/buy.png');
 loadSprite('buy-background', 'images/buy-background.png');
 
-layers(['prompt', 'pro'], 'game')
+layers(['game', 'pro', 'molecule', 'prompt'])
 
 var buyPromptStuff = [];
 
@@ -143,272 +143,6 @@ buy.onClick(() => {
     promptBuy();
 });
 
-/******************************
-MAIN STUFF
-*******************************/
-var machines = [];
-var moleculesOnConveyor = [];
-
-class Machine {
-    constructor(name, position, reactantSlots, productSlots, entrancePos, centerPos, exitPos, productPath) {
-        /* reactantSlots: [{
-            name: String reactant name,
-            pos: Vec2,
-            sprite: Sprite
-        }] */
-
-        this.name = name;
-        this.sprite = add([
-            sprite(name),
-            pos(position),
-            area(),
-            scale(2),
-            origin('center')
-        ])
-
-        this.queue = []; // String of sprite names
-        this.reactantSlots = reactantSlots;
-        this.productSlots = productSlots;
-        this.entrancePos = entrancePos;
-        this.centerPos = centerPos;
-        this.exitPos = exitPos;
-        this.productPath = productPath; // The path products take when they leave the machine
-        this.state = 'waiting'; // 'waiting'
-        this.lastExpel = 30;
-    }
-
-    inputMolecule(molecule) {
-        let isReactant = false;
-        
-        for (let slot of this.reactantSlots) {
-            if (molecule.name == slot['name']) {
-                isReactant = true;
-                break;
-            }
-        }
-
-        if (isReactant) {
-            this.queue.push(molecule.name)
-            moleculesOnConveyor.splice(moleculesOnConveyor.indexOf(molecule), 1);
-            molecule.remove(); 
-        } else {
-            molecule.sprite.moveTo(this.exitPos);
-            molecule.path = this.productPath;
-        }
-    }
-
-    run() {
-        // Does the animations and like idk
-
-        if (this.state == 'waiting') {
-            // waiting for reactants
-
-            // Look for blank slots and then fill in those blank slots
-            for (let slot of this.reactantSlots) {
-                if (slot.sprite == null) {
-
-
-                    // We have a blank slot, look for something in the queue that can fill in that blank slot
-                    for (let moleculeName of queue) {
-                        if (moleculeName == slot.name) {
-                            // Make a Molecule based on the name and pos
-                            let molecule = new Molecule(slot.name, slot.pos, this.centerPos);
-                            slot.sprite = molecule;
-                            break;
-                        }
-                    }
-
-
-                }
-            }
-
-
-            // Check if all the slots are full
-            let allSlotsFull = true;
-            for (let slot of this.reactantSlots) {
-                if (slot.sprite == null) {
-                    allSlotsFull = false;
-                    break;
-                }
-            }
-
-            if (allSlotsFull) {
-                this.state = 'reacting';
-            }
-        }
-
-        else if (this.state == 'reacting') {
-            let reactants = [];
-
-            for (let slot of this.reactantSlots) {
-                reactants.push(slot.sprite);
-            }
-
-            // Set the paths to the center of the machine
-            for (let reactant of reactants) {
-                reactant.path = this.centerPos;
-            }
-
-            // Move the reactants
-            for (let reactant of reactants) {
-                reactant.move();
-            }
-
-            // Check if all of the reactants are atDestination
-            let allReactantsAtDest = true;
-            for (let reactant of reactants) {
-                if (!reactant.atDestination) {
-                    allReactantsAtDest = false;
-                    break;
-                }
-            }
-
-            if (allReactantsAtDest) {
-                // Remove all reactants
-                for (let slot of this.reactantSlots) {
-                    slot.sprite.remove();
-                    slot.sprite = null;
-                }
-
-                // Create products
-                for (let slot of this.productSlots) {
-                    slot.sprite = new Molecule(slot.name, this.centerPos, slot.pos);
-                }
-
-                this.state = 'producting';
-            }            
-        }
-
-        else if (this.state == 'producting') {
-            let products = [];
-
-            for (let slot of this.productSlots) {
-                products.push(slot.sprite);
-            }
-
-            // Move the products
-            for (let product of products) {
-                product.move();
-            }
-
-            // Check if all the products are atDestination
-            let allProductsAtDest = true;
-            for (let product of products) {
-                if (!product.atDestination) {
-                    allProductsAtDest = false;
-                    break;
-                }
-            }
-
-            if (allProductsAtDest) {
-                this.state = 'expelling';
-            }
-        }
-
-        else if (this.state == 'expelling') {
-            if (this.lastExpel <= 0) {
-                let moleculeToExpel;
-
-                for (let slot of this.productSlots) {
-                    if (slot.sprite != null) {
-                        moleculeToExpel = slot.sprite;
-                        slot.sprite = null;
-                        break;
-                    }
-                }
-
-                // Expell molecule
-                moleculeToExpel.path = this.productPath;
-                moleculeToExpel.sprite.moveTo(this.exitPos);
-                moleculesOnConveyor.push(moleculeToExpel);
-
-                this.lastExpel = 30;
-
-                // If all molecules expelled, go back to waiting state
-
-                let allMoleculesExpelled = true;
-                for (let slot of this.productSlots) {
-                    if (slot.sprite != null) {
-                        allMoleculesExpelled = false;
-                        break;
-                    }
-                }
-
-                if (allMoleculesExpelled) {
-                    this.state = 'waiting'
-                }
-            } else {
-                this.lastExpel--;
-            }
-        }
-    }
-}
-
-class Molecule {
-    constructor (name, startPos, path) {
-        this.name = name;
-        this._path = path; /* PATH CAN BE A LIST OF VEC 2, SINGLE VEC 2, OR NULL */
-
-        this.sprite = add([
-            sprite(name),
-            pos(startPos), 
-            area(),
-            scale(2),
-            origin("center")
-        ])
-
-        if (Array.isArray(this._path)) {
-            if (this._path.length == 1 && this._path[0] == this.sprite.pos) {
-                this.atDestination = true;
-            } else {
-                this.atDestination = false;
-            }
-        } else if (this._path == this.sprite.pos) {
-            this.atDestination = true;
-        } else {
-            this.atDestination = false;
-        }
-    }
-
-    remove() {
-        destroy(this.sprite);
-    }
-
-    set path(newPath) {
-        this._path = newPath
-
-        if (Array.isArray(this._path)) {
-            if (this._path.length == 1 && this._path[0] == this.sprite.pos) {
-                this.atDestination = true;
-            } else {
-                this.atDestination = false;
-            }
-        } else if (this._path == this.sprite.pos) {
-            this.atDestination = true;
-        } else {
-            this.atDestination = false;
-        }
-    }
-
-    get path() {
-        return this._path;
-    }
-
-    move() {
-        if (Array.isArray(this._path)) {
-            this.moveTo(this._path[0], MOLECULE_SPEED);
-        } else {
-            this.moveTo(this._path, MOLECULE_SPEED);
-        }
-    }
-}
-
-var phosphorylationMachine = new Machine(
-    'phosphorylation',
-    vec2(105, 78),
-    {
-        
-    })
 
 var phosphorylation = add([
     sprite('phosphorylation'),
@@ -418,16 +152,6 @@ var phosphorylation = add([
     origin("center"),
 ]);
  
-phosphorylation.queue = [];
-phosphorylation.working = [];
-phosphorylation.needed = {
-    'glucose': 1,
-    'atp': 2
-}
-phosphorylation.finishedItems = [];
-
-
-
 var energyHarvester = null;
 
 function addEnergyHarvester() {
@@ -501,20 +225,13 @@ function addCitricAcidCycle() {
     ]);
 }
 
-// const asdf = add([
-//     sprite('asdf'),
-//     pos(356, 70), 
-//     area(),
-//     scale(2),
-//     origin("center")
-// ]);
-
 const adp1 = add([
     sprite('adp'),
     pos(120, 80), 
     area(),
     scale(2),
-    origin("center")
+    origin("center"),
+    layer('molecule')
 ])
 
 const adp2 = add([
@@ -522,7 +239,8 @@ const adp2 = add([
     pos(120, 80), 
     area(),
     scale(2),
-    origin('center')
+    origin('center'),
+    layer('molecule')
 ])
 
 const atp1 = add([
@@ -530,7 +248,8 @@ const atp1 = add([
     pos(120, 80), 
     area(),
     scale(2),
-    origin('center')
+    origin('center'),
+    layer('molecule')
 ])
 
 const atp2 = add([
@@ -538,86 +257,17 @@ const atp2 = add([
     pos(120, 80), 
     area(),
     scale(2),
-    origin('center')
+    origin('center'),
+    layer('molecule')
 ])
-
-function createAtp(pos_set, path, destination) {
-    const atp = add([
-        sprite('atp'),
-        pos(pos_set), 
-        area(),
-        scale(2),
-        origin('center')
-    ])
-    atp.type = 'atp';
-    atp.path = path;
-    atp.destination = destination;
-    atp.moveTo(path[0].x, path[0].y, MOLECULE_SPEED);
-
-    molecules.push(atp);
-
-    return atp;
-}
-
-function displayAtp(pos_set) {
-    const atp = add([
-        sprite('atp'),
-        pos(pos_set), 
-        area(),
-        scale(2),
-        origin('center'),
-        layer('pro')
-    ])
-
-    atp.final = pos_set;
-
-    displayMolecules.push(atp);
-
-    return atp;
-}
-
-function createGlucose(pos_set, path, destination) {
-    const glucose = add([
-        sprite('glucose'),
-        pos(pos_set), 
-        area(),
-        scale(2),
-        origin('center')
-    ])
-    glucose.type = 'glucose';
-    glucose.path = path;
-    glucose.destination = destination;
-    glucose.moveTo(path[0].x, path[0].y, MOLECULE_SPEED);
-
-    molecules.push(glucose);
-
-    return glucose;
-}
-
-function displayGlucose(pos_set) {
-    console.log('where')
-    const glucose = add([
-        sprite('glucose'),
-        pos(pos_set), 
-        area(),
-        scale(2),
-        origin('center'),
-        layer('pro')
-    ])
-
-    glucose.final = pos_set;
-
-    displayMolecules.push(glucose);
-
-    return glucose;
-}
 
 const sixC = add([
     sprite('6c'),
     pos(120, 80), 
     area(),
     scale(2),
-    origin('center')
+    origin('center'),
+    layer('molecule')
 ])
 
 const threeC1 = add([
@@ -625,7 +275,8 @@ const threeC1 = add([
     pos(120, 80), 
     area(),
     scale(2),
-    origin('center')
+    origin('center'),
+    layer('molecule')
 ])
 
 const threeC2 = add([
@@ -633,7 +284,8 @@ const threeC2 = add([
     pos(120, 80), 
     area(),
     scale(2),
-    origin('center')
+    origin('center'),
+    layer('molecule')
 ])
 
 let clicked = null;
@@ -643,33 +295,6 @@ onUpdate(() => {
         if (sprite.isClicked()) {
             clicked = sprite
             console.log(sprite.pos)
-        }
-    }
-
-    if (lastGlucoseSpawn <= 0) {
-        let newGlucose = new Molecule('glucose', vec(14, 82), vec2(44, 82));
-        moleculesOnConveyor.push(newGlucose);
-        lastGlucoseSpawn = 60;
-    } else {
-        lastGlucoseSpawn--;
-    }
-
-    if (lastATPSpawn <= 0) {
-        let newATP = new Molecule('atp', vec(14, 82), vec2(44, 82));
-        moleculesOnConveyor.push(newATP);
-        lastATPSpawn = 30;
-    } else {
-        lastATPSpawn--;
-    }
-
-    for (let molecule of moleculesOnConveyor) {
-        molecule.move();
-
-        // See if any of the molecules are at the start pos of any of the machines
-        for (let machine of machines) {
-            if (molecule.sprite.pos == machine.startPos) {
-                machine.inputMolecule(molecule);
-            }
         }
     }
 })
