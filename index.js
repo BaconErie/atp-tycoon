@@ -60,6 +60,11 @@ loadSprite('asdf', 'images/asdf.png');
 loadSprite('buy', 'images/buy.png');
 loadSprite('buy-background', 'images/buy-background.png');
 
+loadSprite('citricAcidMaker', 'images/citric-acid-maker.png');
+loadSprite('5cMaker', 'images/5c-maker.png');
+loadSprite('4cMaker', 'images/4c-maker.png');
+loadSprite('OaaMaker', 'images/oaa-maker.png');
+
 layers(['game', 'pro', 'molecule', 'prompt'])
 
 var buyPromptStuff = [];
@@ -217,6 +222,42 @@ var citricAcidCycle = null;
 function addCitricAcidCycle() {
     citricAcidCycle = add([
         sprite('citric-acid-cycle'),
+        pos(815, 404), 
+        area(),
+        scale(2),
+        origin("center"),
+        layer('pro')
+    ]);
+    
+    citricAcidMaker = add([
+        sprite('citricAcidMaker'),
+        pos(815, 404), 
+        area(),
+        scale(2),
+        origin("center"),
+        layer('pro')
+    ]);
+
+    fiveCMaker = add([
+        sprite('5cMaker'),
+        pos(815, 404), 
+        area(),
+        scale(2),
+        origin("center"),
+        layer('pro')
+    ]);
+
+    fourCMaker = add([
+        sprite('4cMaker'),
+        pos(815, 404), 
+        area(),
+        scale(2),
+        origin("center"),
+        layer('pro')
+    ]);
+
+    OaaMaker = add([
+        sprite('OaaMaker'),
         pos(815, 404), 
         area(),
         scale(2),
