@@ -60,7 +60,7 @@ loadSprite('asdf', 'images/asdf.png');
 loadSprite('buy', 'images/buy.png');
 loadSprite('buy-background', 'images/buy-background.png');
 
-layers(['prompt', 'pro'], 'game')
+layers(['machine', 'molecule', 'game', 'prompt'])
 
 var buyPromptStuff = [];
 
@@ -163,7 +163,8 @@ class Machine {
             pos(position),
             area(),
             scale(2),
-            origin('center')
+            origin('center'),
+            layer('machine')
         ])
 
         this.queue = []; // String of sprite names
@@ -209,7 +210,7 @@ class Machine {
 
 
                     // We have a blank slot, look for something in the queue that can fill in that blank slot
-                    for (let moleculeName of queue) {
+                    for (let moleculeName of this.queue) {
                         if (moleculeName == slot.name) {
                             // Make a Molecule based on the name and pos
                             let molecule = new Molecule(slot.name, slot.pos, this.centerPos);
@@ -318,7 +319,7 @@ class Machine {
                 }
 
                 // Expell molecule
-                moleculeToExpel.path = this.productPath.moleculeToExpel[moleculeToExpel.name];
+                moleculeToExpel.path = this.productPath[moleculeToExpel.name];
                 moleculeToExpel.sprite.moveTo(this.exitPos);
                 moleculesOnConveyor.push(moleculeToExpel);
 
@@ -354,7 +355,8 @@ class Molecule {
             pos(startPos), 
             area(),
             scale(2),
-            origin("center")
+            origin("center"),
+            layer('molecule')
         ])
 
         if (Array.isArray(this._path)) {
@@ -383,6 +385,8 @@ class Molecule {
             } else {
                 this.atDestination = false;
             }
+        
+        
         } else if (this._path.x == this.sprite.pos.x && this._path.y == this.sprite.pos.y) {
             this.atDestination = true;
         } else {
@@ -467,7 +471,7 @@ var phosphorylationMachine = new Machine(
     vec2(110, 83),
     vec2(148, 85),
     {
-        'glucose': vec2(332, 85),
+        '3c': vec2(332, 85),
         'adp': vec2(332, 85)
     }
     )
@@ -713,10 +717,15 @@ onUpdate(() => {
 
         // See if any of the molecules are at the start pos of any of the machines
         for (let machine of machines) {
-            if (molecule.sprite.pos.x == machine.startPos.x && molecule.sprite.pos.y == machine.startPos.y) {
+            if (molecule.sprite.pos.x == machine.entrancePos.x && molecule.sprite.pos.y == machine.entrancePos.y) {
                 machine.inputMolecule(molecule);
             }
         }
+    }
+    
+    // Run the machines
+    for (let machine of machines) {
+        machine.run();
     }
 })
 
