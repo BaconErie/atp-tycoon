@@ -378,12 +378,12 @@ class Molecule {
         this._path = newPath
 
         if (Array.isArray(this._path)) {
-            if (this._path.length == 1 && this._path[0] == this.sprite.pos) {
+            if (this._path.length == 1 && this._path[0].x == this.sprite.pos.x && this._path[0].y == this.sprite.pos.y) {
                 this.atDestination = true;
             } else {
                 this.atDestination = false;
             }
-        } else if (this._path == this.sprite.pos) {
+        } else if (this._path.x == this.sprite.pos.x && this._path.y == this.sprite.pos.y) {
             this.atDestination = true;
         } else {
             this.atDestination = false;
@@ -396,9 +396,21 @@ class Molecule {
 
     move() {
         if (Array.isArray(this._path)) {
-            this.moveTo(this._path[0], MOLECULE_SPEED);
+            this.sprite.moveTo(this._path[0], MOLECULE_SPEED);
         } else {
-            this.moveTo(this._path, MOLECULE_SPEED);
+            this.sprite.moveTo(this._path, MOLECULE_SPEED);
+        }
+
+        if (Array.isArray(this._path)) {
+            if (this._path.length == 1 && this._path[0].x == this.sprite.pos.x && this._path[0].y == this.sprite.pos.y) {
+                this.atDestination = true;
+            } else {
+                this.atDestination = false;
+            }
+        } else if (this._path.x == this.sprite.pos.x && this._path.y == this.sprite.pos.y) {
+            this.atDestination = true;
+        } else {
+            this.atDestination = false;
         }
     }
 }
@@ -406,27 +418,61 @@ class Molecule {
 var phosphorylationMachine = new Machine(
     'phosphorylation',
     vec2(105, 78),
+    [
+        {
+            'name': 'atp',
+            'pos': vec2(86, 63),
+            'sprite': null
+        },
+
+        {
+            'name': 'atp',
+            'pos': vec2(86, 105),
+            'sprite': null
+        },
+
+        {
+            'name': 'glucose',
+            'pos': vec2(127, 85),
+            'sprite': null
+        },
+
+    ],
+    [
+        {
+            'name': 'adp',
+            'pos': vec2(86, 63),
+            'sprite': null
+        },
+
+        {
+            'name': 'adp',
+            'pos': vec2(86, 105),
+            'sprite': null
+        },
+
+        {
+            'name': '3c',
+            'pos': vec2(127, 63),
+            'sprite': null
+        },
+
+        {
+            'name': '3c',
+            'pos': vec2(127, 105),
+            'sprite': null
+        },
+    ],
+    vec2(61, 85),
+    vec2(110, 83),
+    vec2(148, 85),
     {
-        
-    })
+        'glucose': vec2(332, 85),
+        'adp': vec2(332, 85)
+    }
+    )
 
-var phosphorylation = add([
-    sprite('phosphorylation'),
-    pos(105, 78), 
-    area(),
-    scale(2),
-    origin("center"),
-]);
- 
-phosphorylation.queue = [];
-phosphorylation.working = [];
-phosphorylation.needed = {
-    'glucose': 1,
-    'atp': 2
-}
-phosphorylation.finishedItems = [];
-
-
+machines.push(phosphorylationMachine);
 
 var energyHarvester = null;
 
@@ -647,7 +693,7 @@ onUpdate(() => {
     }
 
     if (lastGlucoseSpawn <= 0) {
-        let newGlucose = new Molecule('glucose', vec(14, 82), vec2(44, 82));
+        let newGlucose = new Molecule('glucose', vec2(0, 85), vec2(61, 85));
         moleculesOnConveyor.push(newGlucose);
         lastGlucoseSpawn = 60;
     } else {
@@ -655,7 +701,7 @@ onUpdate(() => {
     }
 
     if (lastATPSpawn <= 0) {
-        let newATP = new Molecule('atp', vec(14, 82), vec2(44, 82));
+        let newATP = new Molecule('atp', vec2(0, 85), vec2(61, 85));
         moleculesOnConveyor.push(newATP);
         lastATPSpawn = 30;
     } else {
@@ -667,7 +713,7 @@ onUpdate(() => {
 
         // See if any of the molecules are at the start pos of any of the machines
         for (let machine of machines) {
-            if (molecule.sprite.pos == machine.startPos) {
+            if (molecule.sprite.pos.x == machine.startPos.x && molecule.sprite.pos.y == machine.startPos.y) {
                 machine.inputMolecule(molecule);
             }
         }
