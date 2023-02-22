@@ -471,8 +471,8 @@ var phosphorylationMachine = new Machine(
     vec2(110, 83),
     vec2(148, 85),
     {
-        '3c': vec2(332, 85),
-        'adp': vec2(332, 85)
+        '3c': vec2(213, 85),
+        'adp': vec2(213, 85)
     }
     )
 
@@ -489,8 +489,30 @@ function addEnergyHarvester() {
         origin("center")
     ]);
 
-    energyHarvester.queue = [];
-    energyHarvester.working = [];
+    energyHarvester = new Machine(
+    'energy_harvester',
+    vec2(356, 70),
+    [
+        {
+            'name': 'nad+',
+            'pos': vec2(86, 63),
+            'sprite': null
+        },
+
+        {
+            'name': 'nadh',
+            'pos': vec2(86, 105),
+            'sprite': null
+        },
+
+        {
+            'name': 'adp',
+            'pos': vec2(127, 85),
+            'sprite': null
+        },
+
+    ],
+    )
 
     console.log(buy.pos)
     buy.pos = vec2(608, 88);
